@@ -33,12 +33,20 @@ export default function Page() {
           setConnectionStatus(change.current);
           if (change.current === 'connected') {
             setIsConnected(true);
+            setError(null); // Clear error when reconnected
           } else {
             setIsConnected(false);
           }
         });
 
         pusher.connection.bind('error', (error) => {
+          // Don't show transient timeout errors (code 1006) - Pusher auto-recovers
+          if (error?.code === 1006 || error?.data?.code === 1006) {
+            console.warn('Temporary WebSocket disconnection, reconnecting...');
+            return;
+          }
+          
+          // Only show persistent errors
           setConnectionStatus('error');
           setError(`WebSocket error: ${error?.message || 'Unknown error'}`);
           setIsConnected(false);
@@ -50,11 +58,19 @@ export default function Page() {
           });
         });
 
-        return unsubscribe;
+        // Return cleanup function
+        return () => {
+          if (unsubscribe) unsubscribe();
+          if (pusher?.cleanup) pusher.cleanup();
+          // Unbind error handlers to prevent memory leaks
+          pusher.connection.unbind('state_change');
+          pusher.connection.unbind('error');
+        };
       } catch (err) {
         setError("WebSocket connection failed. Check your Soketi credentials.");
         setConnectionStatus('error');
         setIsConnected(false);
+        return () => {}; // Return empty cleanup if error
       }
     }
   }, []);
@@ -65,38 +81,8 @@ export default function Page() {
     setShowNicknameModal(false);
     fetchMessages();
     
-    // Subscribe to Pusher after username is set
-    try {
-      const pusher = initPusher();
-
-      // Monitor connection state
-      pusher.connection.bind('state_change', (change) => {
-        setConnectionStatus(change.current);
-        if (change.current === 'connected') {
-          setIsConnected(true);
-        } else {
-          setIsConnected(false);
-        }
-      });
-
-      pusher.connection.bind('error', (error) => {
-        setConnectionStatus('error');
-        setError(`WebSocket error: ${error?.message || 'Unknown error'}`);
-        setIsConnected(false);
-      });
-
-      const unsubscribe = subscribeToChatChannel((newMessage) => {
-        setMessages((prev) => {
-          return [newMessage, ...prev];
-        });
-      });
-
-      return unsubscribe;
-    } catch (err) {
-      setError("WebSocket connection failed. Check your Soketi credentials.");
-      setConnectionStatus('error');
-      setIsConnected(false);
-    }
+    // Pusher subscription will be triggered by useEffect
+    // when nickname state is saved to localStorage
   };
 
   const fetchMessages = async () => {
