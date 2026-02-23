@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.akschatfilter.entity.ChatMessage;
 import com.example.akschatfilter.repository.ChatMessageRepository;
+import com.example.akschatfilter.service.BroadcastService;
 import com.example.akschatfilter.service.MessageFilterService;
 
 @RestController
@@ -27,6 +28,9 @@ public class ChatController {
 
     @Autowired
     private MessageFilterService messageFilterService;
+
+    @Autowired
+    private BroadcastService broadcastService;
 
     @GetMapping
     public ResponseEntity<List<ChatMessage>> getAllMessages() {
@@ -46,6 +50,14 @@ public class ChatController {
         
         // Save message to database
         ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
+        
+        // Broadcast message to all connected clients via WebSocket
+        broadcastService.broadcastMessage(
+            savedMessage.getUsername(),
+            savedMessage.getContent(),
+            savedMessage.getStatus(),
+            savedMessage.getRejectionReason()
+        );
         
         return ResponseEntity.status(HttpStatus.CREATED).body(savedMessage);
     }

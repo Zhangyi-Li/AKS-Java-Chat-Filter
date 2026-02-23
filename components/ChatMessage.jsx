@@ -3,15 +3,20 @@
 export default function ChatMessage({ message }) {
   const isBlocked = message.status === 'BLOCKED';
 
-  // Parse UTC timestamp from server and convert to user's local time
-  const parseUTCTime = (isoString) => {
-    // ISO string is in UTC, new Date() converts to user's local timezone
-    return new Date(isoString);
+  // Parse timestamp/date string - handles both ISO strings and millisecond timestamps
+  const parseUTCTime = (dateValue) => {
+    if (!dateValue) return new Date();
+    // If it's a number, treat as milliseconds
+    if (typeof dateValue === 'number') return new Date(dateValue);
+    // If it's a string, try parsing as ISO or milliseconds
+    const parsed = new Date(dateValue);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
   };
 
   // Get full local time for tooltip
-  const getFullLocalTime = (isoString) => {
-    const date = parseUTCTime(isoString);
+  const getFullLocalTime = (dateValue) => {
+    const date = parseUTCTime(dateValue);
+    if (isNaN(date.getTime())) return 'Unknown time';
     return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -25,8 +30,10 @@ export default function ChatMessage({ message }) {
   };
 
   // Format timestamp to local time - compact version
-  const formatTime = (isoString) => {
-    const date = parseUTCTime(isoString);
+  const formatTime = (dateValue) => {
+    const date = parseUTCTime(dateValue);
+    if (isNaN(date.getTime())) return 'Unknown';
+    
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);

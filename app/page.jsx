@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import ChatMessage from '@/components/ChatMessage';
 import NicknameModal from '@/components/NicknameModal';
+import { subscribeToChatChannel, initPusher } from '@/lib/pusher';
 
 export default function Page() {
   const [messages, setMessages] = useState([]);
@@ -12,14 +13,49 @@ export default function Page() {
   const [error, setError] = useState(null);
   const [username, setUsername] = useState('');
   const [showNicknameModal, setShowNicknameModal] = useState(true);
-
-  // Initialize username from localStorage
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  // Initialize username from localStorage and subscribe to Pusher
   useEffect(() => {
     const savedUsername = localStorage.getItem('chatUsername');
+
     if (savedUsername) {
       setUsername(savedUsername);
       setShowNicknameModal(false);
       fetchMessages();
+      
+      // Subscribe to real-time chat updates
+      try {
+        const pusher = initPusher();
+        
+        // Monitor connection state
+        pusher.connection.bind('state_change', (change) => {
+          setConnectionStatus(change.current);
+          if (change.current === 'connected') {
+            setIsConnected(true);
+          } else {
+            setIsConnected(false);
+          }
+        });
+
+        pusher.connection.bind('error', (error) => {
+          setConnectionStatus('error');
+          setError(`WebSocket error: ${error?.message || 'Unknown error'}`);
+          setIsConnected(false);
+        });
+
+        const unsubscribe = subscribeToChatChannel((newMessage) => {
+          setMessages((prev) => {
+            return [newMessage, ...prev];
+          });
+        });
+
+        return unsubscribe;
+      } catch (err) {
+        setError("WebSocket connection failed. Check your Soketi credentials.");
+        setConnectionStatus('error');
+        setIsConnected(false);
+      }
     }
   }, []);
 
@@ -28,6 +64,39 @@ export default function Page() {
     setUsername(nickname);
     setShowNicknameModal(false);
     fetchMessages();
+    
+    // Subscribe to Pusher after username is set
+    try {
+      const pusher = initPusher();
+
+      // Monitor connection state
+      pusher.connection.bind('state_change', (change) => {
+        setConnectionStatus(change.current);
+        if (change.current === 'connected') {
+          setIsConnected(true);
+        } else {
+          setIsConnected(false);
+        }
+      });
+
+      pusher.connection.bind('error', (error) => {
+        setConnectionStatus('error');
+        setError(`WebSocket error: ${error?.message || 'Unknown error'}`);
+        setIsConnected(false);
+      });
+
+      const unsubscribe = subscribeToChatChannel((newMessage) => {
+        setMessages((prev) => {
+          return [newMessage, ...prev];
+        });
+      });
+
+      return unsubscribe;
+    } catch (err) {
+      setError("WebSocket connection failed. Check your Soketi credentials.");
+      setConnectionStatus('error');
+      setIsConnected(false);
+    }
   };
 
   const fetchMessages = async () => {
@@ -38,7 +107,6 @@ export default function Page() {
       setError(null);
     } catch (err) {
       setError('Failed to load messages');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -59,14 +127,12 @@ export default function Page() {
         content: content,
         status: '',
       });
-
-      // Add new message to the top of the list
-      setMessages([response.data, ...messages]);
+      
+      // Message will be received via Pusher, so we don't add it manually
       setContent('');
       setError(null);
     } catch (err) {
       setError('Failed to send message');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -89,6 +155,10 @@ export default function Page() {
         <h1>Global Chat</h1>
         <p>Real-time conversations</p>
         <div className="chat-header-controls">
+          <div className="connection-status">
+            <div className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}></div>
+            <span>{isConnected ? 'Connected' : 'Connecting...'}</span>
+          </div>
           <div className="user-info">
             <div className="user-avatar">{userInitial}</div>
             <span>{username}</span>

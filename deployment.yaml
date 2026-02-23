@@ -50,6 +50,27 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
+            - name: SOKETI_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: soketi-secrets
+                  key: app-id
+            - name: SOKETI_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: soketi-secrets
+                  key: app-key
+            - name: SOKETI_APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: soketi-secrets
+                  key: app-secret
+            - name: SOKETI_HOST
+              value: "soketi-production-41a1.up.railway.app"
+            - name: SOKETI_PORT
+              value: "443"
+            - name: SOKETI_USE_TLS
+              value: "true"
 
 ---
 apiVersion: v1
@@ -110,6 +131,23 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 5
           env:
+            - name: NEXT_PUBLIC_SOKETI_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: soketi-secrets
+                  key: app-id
+            - name: NEXT_PUBLIC_SOKETI_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: soketi-secrets
+                  key: app-key
+            - name: NEXT_PUBLIC_SOKETI_APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: soketi-secrets
+                  key: app-secret
+            - name: NEXT_PUBLIC_SOKETI_APP_HOST
+              value: "soketi-production-41a1.up.railway.app"
             - name: NEXT_PUBLIC_API_URL
               value: "http://aks-java-chat-filter-service.chat-filter-app.svc.cluster.local:8080"
 
