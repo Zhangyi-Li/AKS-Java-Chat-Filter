@@ -2,11 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
     return {
       beforeFiles: [
         {
-          source: '/api/:path*',
-          destination: 'http://localhost:8080/api/:path*',
+          source: "/api/:path*",
+          destination: `${apiUrl}/api/:path*`,
         },
       ],
     };
