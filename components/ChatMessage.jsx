@@ -13,7 +13,7 @@ export default function ChatMessage({ message }) {
     return isNaN(parsed.getTime()) ? new Date() : parsed;
   };
 
-  // Get full local time for tooltip
+  // Get full local time in user's timezone
   const getFullLocalTime = (dateValue) => {
     const date = parseUTCTime(dateValue);
     if (isNaN(date.getTime())) return 'Unknown time';
@@ -29,10 +29,10 @@ export default function ChatMessage({ message }) {
     });
   };
 
-  // Format timestamp to local time - compact version
-  const formatTime = (dateValue) => {
+  // Get relative time (e.g., "5m ago") for tooltip
+  const getTimeAgo = (dateValue) => {
     const date = parseUTCTime(dateValue);
-    if (isNaN(date.getTime())) return 'Unknown';
+    if (isNaN(date.getTime())) return '';
     
     const now = new Date();
     const diffMs = now - date;
@@ -45,7 +45,7 @@ export default function ChatMessage({ message }) {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return '';
   };
 
   // Get user avatar initial
@@ -85,8 +85,8 @@ export default function ChatMessage({ message }) {
           </div>
           <span>{message.username}</span>
         </div>
-        <span className="message-time" title={getFullLocalTime(message.createdAt)}>
-          {formatTime(message.createdAt)}
+        <span className="message-time" title={`${getTimeAgo(message.createdAt)} • ${getFullLocalTime(message.createdAt)}`}>
+          {getFullLocalTime(message.createdAt)}
         </span>
       </div>
       <div className="message-content">{message.content}</div>
