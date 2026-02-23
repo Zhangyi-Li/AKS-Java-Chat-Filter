@@ -1,6 +1,6 @@
 package com.example.akschatfilter.entity;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,7 +31,7 @@ public class ChatMessage {
     private String rejectionReason;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     public ChatMessage() {
     }
@@ -40,13 +40,13 @@ public class ChatMessage {
         this.username = username;
         this.content = content;
         this.status = status;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = Instant.now();
     }
 
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = Instant.now();
         }
     }
 
@@ -90,11 +90,11 @@ public class ChatMessage {
         this.rejectionReason = rejectionReason;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 
